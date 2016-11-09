@@ -1,4 +1,4 @@
-bfFixefLMER_t.fnc<-function (model, item = FALSE, method = c("t", "z", "llrt", "AIC", "BIC", "relLik.AIC", "relLik.BIC"), threshold = NULL, t.threshold = NULL, alphaitem = NULL, prune.ranefs = TRUE, set.REML.FALSE = TRUE, keep.single.factors = FALSE, reset.REML.TRUE = TRUE, log.file = NULL) {
+bfFixefLMER_t.fnc <- function (model, item = FALSE, method = c("t", "z", "llrt", "AIC", "BIC", "relLik.AIC", "relLik.BIC"), threshold = NULL, t.threshold = NULL, alphaitem = NULL, prune.ranefs = TRUE, set.REML.FALSE = TRUE, keep.single.factors = FALSE, reset.REML.TRUE = TRUE, log.file = NULL) {
   if (length(item) == 0) {
     stop("please supply a value to argument \"item\".\n")
   }
@@ -74,8 +74,9 @@ bfFixefLMER_t.fnc<-function (model, item = FALSE, method = c("t", "z", "llrt", "
     data[, as.character(unlist(as.list(model@call))$formula[2])] = rnorm(nrow(data), 0, 1)
 	ow<-options()$warn
   	options(warn = -1)
-    temp.lmer <- update(model, . ~ ., family = "gaussian", data = data)
-	options(warn=ow)
+  	temp.lmer <- lmer(model@call$formula, control = lmerControl(optimizer = "nloptwrap",
+  	                                                  calc.derivs = FALSE), data = data)
+	  options(warn=ow)
     coefs <- row.names(anova(temp.lmer))
     data[, as.character(unlist(as.list(model@call))$formula[2])] <- odv
   }
@@ -156,6 +157,7 @@ bfFixefLMER_t.fnc<-function (model, item = FALSE, method = c("t", "z", "llrt", "
       else {
         cat("     not part of higher-order interaction\n")
         m.temp <- NULL
+        #another place where update is called (this is where model is reduced)
         eval(parse(text = paste("m.temp=update(model,.~.-", row.names(smry.temp2[smry.temp2[, 3] == min(smry.temp2[, 3]), ])[1], ")", sep = "")))
         if (method[1] == "llrt") {
           if (as.vector(anova(model, m.temp)[2, "Pr(>Chisq)"]) <= threshold) {
@@ -231,10 +233,11 @@ bfFixefLMER_t.fnc<-function (model, item = FALSE, method = c("t", "z", "llrt", "
           if (as.vector(model@call[1]) == "glmer()") {
             odv <- data[, as.character(unlist(as.list(model@call))$formula[2])]
             data[, as.character(unlist(as.list(model@call))$formula[2])] <- rnorm(nrow(data), 0, 1)
-			ow<-options()$warn
-  			options(warn = -1)
-            temp.lmer <- update(model, . ~ ., family = "gaussian", data = data)
-			options(warn=ow)
+      			ow<-options()$warn
+      			options(warn = -1)
+      			temp.lmer <- lmer(model@call$formula, control = lmerControl(optimizer = "nloptwrap",
+      			                                                  calc.derivs = FALSE), data = data)
+      			options(warn=ow)
             coefs <- row.names(anova(temp.lmer))
             data[, as.character(unlist(as.list(model@call))$formula[2])] <- odv
           }
@@ -316,8 +319,9 @@ bfFixefLMER_t.fnc<-function (model, item = FALSE, method = c("t", "z", "llrt", "
       data[, as.character(unlist(as.list(model@call))$formula[2])] = rnorm(nrow(data), 0, 1)
 	  ow<-options()$warn
   	  options(warn = -1)
-      temp.lmer <- update(model, . ~ ., family = "gaussian", data = data)
-	  options(warn=ow)
+  	  temp.lmer <- lmer(model@call$formula, control = lmerControl(optimizer = "nloptwrap",
+  	                                                    calc.derivs = FALSE), data = data)
+	    options(warn=ow)
       coefs <- row.names(anova(temp.lmer))
       data[, as.character(unlist(as.list(model@call))$formula[2])] <- odv
     }
@@ -343,7 +347,7 @@ bfFixefLMER_t.fnc<-function (model, item = FALSE, method = c("t", "z", "llrt", "
         cat("    removing", iii, "from model ...\n")
         rtr2 <- c(rtr2, sub(iii, 1, grep(iii, m.ranefs, value = TRUE)))
       }
-      eval(parse(text = paste("model<-update(model,.~.-", paste(rtr, collapse = "-"), "+", paste(rtr2, collapse = "+"), ",data=data)", sep = "")))
+      eval(parse(text = paste("model<-update(model,.~.-", paste(rtr, collapse = "-"), "+", paste(rtr2, collapse = "+"), ", data=data)", sep = "")))
     }
     else {
       cat("  nothing to prune\n")
